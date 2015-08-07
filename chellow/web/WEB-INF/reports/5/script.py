@@ -8,7 +8,7 @@ import utils
 import templater
 Monad.getUtils()['impt'](globals(), 'db', 'utils', 'templater')
 Contract, Site, Era, SiteEra = db.Contract, db.Site, db.Era, db.SiteEra
-MarketRole = db.MarketRole
+MarketRole, GEra, SiteGEra = db.MarketRole, db.GEra, db.SiteGEra
 HH = utils.HH
 inv, template = globals()['inv'], globals()['template']
 
@@ -47,6 +47,24 @@ try:
     groups = sorted(
         groups, key=operator.itemgetter('is_ongoing'), reverse=True)
 
+    g_eras = sess.query(GEra).join(SiteGEra).filter(
+        SiteGEra.site == site).order_by(
+        GEra.g_supply_id, GEra.start_date.desc()).all()
+
+    g_groups = []
+    for idx, g_era in enumerate(g_eras):
+        if idx == 0 or g_eras[idx - 1].g_supply_id != g_era.g_supply_id:
+            g_groups.append(
+                {
+                    'last_g_era': g_era,
+                    'is_ongoing': g_era.finish_date is None})
+
+        if g_era == g_eras[-1] or g_era.g_supply_id != g_eras[idx + 1]:
+            g_groups[-1]['first_g_era'] = g_era
+
+    g_groups = sorted(
+        g_groups, key=operator.itemgetter('is_ongoing'), reverse=True)
+
     now = datetime.now(pytz.utc)
     month_start = datetime(now.year, now.month, 1)
     month_finish = month_start + relativedelta(months=1) - HH
@@ -61,9 +79,10 @@ try:
         Contract.name).all()
     templater.render(
         inv, template, {
-            'site': site, 'groups': groups, 'properties': properties,
-            'other_sites': other_sites, 'month_start': month_start,
-            'month_finish': month_finish, 'last_month_start': last_month_start,
+            'site': site, 'groups': groups, 'g_groups': g_groups,
+            'properties': properties, 'other_sites': other_sites,
+            'month_start': month_start, 'month_finish': month_finish,
+            'last_month_start': last_month_start,
             'last_month_finish': last_month_finish, 'scenarios': scenarios})
 finally:
     if sess is not None:

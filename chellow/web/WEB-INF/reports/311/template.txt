@@ -102,7 +102,7 @@
       <form action="." method="post">
         <fieldset>
           <input type="hidden" name="site_id" value="{{site.id}}">
-          <legend>Insert a supply</legend>
+          <legend>Insert an electricity supply</legend>
           <br>
           <label>Source</label>
           <select name="source_id">
@@ -180,7 +180,7 @@
           <fieldset>
             <legend>Import</legend>
             <label>Mpan Core</label>
-            {{input_text('imp_mpan_core', '', 35)}}
+            {{input_text('imp_mpan_core', '')}}
             <br>
             <label>LLFC</label>
             {{input_text('imp_llfc_code')}}
@@ -202,7 +202,7 @@
           <fieldset>
             <legend>Export</legend>
             <label>Mpan Core</label>
-            {{input_text('exp_mpan_core', '', 35)}}
+            {{input_text('exp_mpan_core', '')}}
             <br>
             <label>LLFC</label>
             {{input_text('exp_llfc_code')}}
@@ -221,7 +221,40 @@
             {{input_text('exp_supplier_account')}}
           </fieldset>
           <br>
-          <input name="insert" type="submit" value="Insert">
+          <input name="insert_electricity" type="submit" value="Insert">
+        </fieldset>
+      </form>
+      <br>
+      <form action="." method="post">
+        <fieldset>
+          <input type="hidden" name="site_id" value="{{site.id}}">
+          <legend>Insert a gas supply</legend>
+          <label>Name</label>
+          {{input_text('name')}}
+          <br>
+          <br>
+          <fieldset>
+            <legend>Start Date</legend>
+            {{input_date('start')}}
+          </fieldset>
+          <br>
+          <label>Meter Serial Number</label>
+          {{input_text('msn')}}
+          <br>
+          <label>MPRN</label>
+            {{input_text('mprn', '')}}
+            <br>
+            <label>Contract</label>
+            <select name="g_contract_id">
+              {% for contract in g_contracts %}
+                {{input_option('g_contract_id', contract.id, contract.name)}}
+              {% endfor %}
+            </select>
+            <br>
+            <label>Account</label>
+            {{input_text('account')}}
+          <br>
+          <input name="insert_gas" type="submit" value="Insert">
         </fieldset>
       </form>
     {% endif %}

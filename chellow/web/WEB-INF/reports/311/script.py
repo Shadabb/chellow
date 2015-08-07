@@ -7,6 +7,7 @@ Monad.getUtils()['impt'](globals(), 'db', 'utils', 'templater')
 Source, GeneratorType, GspGroup = db.Source, db.GeneratorType, db.GspGroup
 SiteEra, Contract, Pc, Cop = db.SiteEra, db.Contract, db.Pc, db.Cop
 Site, MarketRole, Era, Ssc = db.Site, db.MarketRole, db.Era, db.Ssc
+GContract = db.GContract
 UserException, form_date = utils.UserException, utils.form_date
 parse_mpan_core, form_int = utils.parse_mpan_core, utils.form_int
 render = templater.render
@@ -26,6 +27,7 @@ def make_fields(sess, site, message=None):
         MarketRole.code == 'C').order_by(Contract.name)
     supplier_contracts = sess.query(Contract).join(MarketRole).filter(
         MarketRole.code == 'X').order_by(Contract.name)
+    g_contracts = sess.query(GContract).order_by(GContract.name).all()
     pcs = sess.query(Pc).order_by(Pc.code)
     cops = sess.query(Cop).order_by(Cop.code)
     return {
@@ -33,7 +35,8 @@ def make_fields(sess, site, message=None):
         'generator_types': generator_types, 'gsp_groups': gsp_groups,
         'eras': eras, 'mop_contracts': mop_contracts,
         'hhdc_contracts': hhdc_contracts,
-        'supplier_contracts': supplier_contracts, 'pcs': pcs, 'cops': cops}
+        'supplier_contracts': supplier_contracts, 'pcs': pcs, 'cops': cops,
+        'g_contracts': g_contracts}
 
 sess = None
 try:
@@ -57,7 +60,7 @@ try:
             site.update(code, name)
             sess.commit()
             inv.sendSeeOther("/reports/5/output/?site_id=" + str(site.id))
-        elif inv.hasParameter("insert"):
+        elif inv.hasParameter("insert_electricity"):
             name = inv.getString("name")
             source_id = inv.getLong("source_id")
             source = Source.get_by_id(sess, source_id)
@@ -135,7 +138,7 @@ try:
                 exp_sc = inv.getInteger('exp_sc')
                 exp_llfc_code = inv.getString("exp_llfc_code")
 
-            supply = site.insert_supply(
+            supply = site.insert_electricity_supply(
                 sess, source, generator_type, name, start_date, None,
                 gsp_group, mop_contract, mop_account, hhdc_contract,
                 hhdc_account, msn, pc, mtc_code, cop, ssc, imp_mpan_core,
@@ -144,6 +147,18 @@ try:
                 exp_supplier_account, exp_sc)
             sess.commit()
             inv.sendSeeOther("/reports/7/output/?supply_id=" + str(supply.id))
+        elif inv.hasParameter("insert_gas"):
+            name = inv.getString("name")
+            msn = inv.getString("msn")
+            mprn = inv.getString("mprn")
+            g_contract_id = inv.getLong("g_contract_id")
+            g_contract = GContract.get_by_id(sess, g_contract_id)
+            account = inv.getString("account")
+            start_date = form_date(inv, "start")
+            g_supply = site.insert_gas_supply(
+                sess, name, start_date, None, msn, mprn, g_contract, account)
+            sess.commit()
+            inv.sendSeeOther("/reports/5/output/?site_id=" + str(site.id))
 except UserException, e:
     sess.rollback()
     render(inv, template, make_fields(sess, site, e), 400)

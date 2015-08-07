@@ -6,6 +6,7 @@ import decimal
 import collections
 import datetime
 import traceback
+import json
 
 clogs = collections.deque()
 
@@ -55,6 +56,11 @@ def form_date(inv, prefix):
 
 def form_decimal(inv, name):
     return decimal.Decimal(inv.getString(name))
+
+
+def form_json(inv, name):
+        json_str = form_str(inv, name)
+        return json.loads(json_str)
 
 
 def prev_hh(dt):

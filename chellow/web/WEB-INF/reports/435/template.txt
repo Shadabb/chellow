@@ -1,0 +1,85 @@
+<!doctype html>
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css"
+      href="{{ context_path }}/reports/19/output/">
+    <title>
+      Chellow &gt; Gas Supplier Contracts &gt; {{batch.g_contract.name}} &gt;
+      Batches &gt; {{batch.reference}} &gt; Add Bill
+    </title>
+    <style>
+      label {
+        width: 6em;
+        float: left;
+      }
+    </style>
+  </head>
+  <body>
+    <p>
+      <a href="{{context_path}}/reports/1/output/">Chellow</a> &gt;
+      <a href="{{context_path}}/reports/395/output/">Gas Supplier Contracts</a>
+		 	&gt;
+      <a href="{{context_path}}/reports/399/output/?g_contract_id={{batch.g_contract.id}}">{{batch.g_contract.name}}</a> &gt;
+      <a href="{{context_path}}/reports/413/output/?g_contract_id={{batch.g_contract.id}}">Batches</a> &gt;
+      <a href="{{context_path}}/reports/417/output/?g_batch_id={{batch.id}}">{{batch.reference}}</a> &gt;
+      Add Bill
+    </p>
+    <br>
+    {% if messages %}
+      <ul>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+    <form action="." method="post">
+      <fieldset>
+        <input type="hidden" name="g_batch_id" value="{{batch.id}}">
+        <legend>Add a bill</legend>
+        <br>
+        <label>MPRN</label>
+        {{input_text('mprn')}}
+        <br>
+        <label>Reference</label>
+        {{input_text('reference')}}
+        <br>
+        <label>Account</label>
+        {{input_text('account', '')}}
+        <br>
+        <br>
+        <fieldset>
+          <legend>Issue Date</legend>
+          {{input_date('issue')}}
+        </fieldset>
+        <br>
+        <fieldset>
+          <legend>Start Date</legend>
+          {{input_date('start')}}
+        </fieldset>
+        <br>
+        <fieldset>
+          <legend>Finish Date</legend>
+          {{input_date('finish')}}
+        </fieldset>
+        <br>
+        <label>kWh</label>
+        {{input_text('kwh', '0')}}
+        <br>
+        <label>Net</label>
+        {{input_text('net', '0')}}
+        <br>
+        <label>VAT</label>
+        {{input_text('vat', '0')}}
+        <br>
+        <label>Gross</label>
+        {{input_text('gross', '0')}}
+        <br>
+        <label>Breakdown</label>
+        {{input_text('breakdown', '{}')}}
+        <br>
+        <br>
+        <input type="submit" value="Add">
+      </fieldset>
+    </form>
+  </body>
+</html>

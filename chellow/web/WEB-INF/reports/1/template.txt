@@ -16,15 +16,13 @@
       </ul>
     {% endif %}
 
-		<h3>Main</h3>
+		<h3><a href="{{ context_path }}/reports/3/output/">Sites</a></h3>
+
+		<h3>Electricity</h3>
+
 		<ul>
 			<li>
-				<a href="{{ context_path }}/reports/3/output/">Sites</a>
-			</li>
-			<li>
-				<a href="{{ context_path }}/reports/99/output/">
-					Supplies
-				</a>
+				<a href="{{ context_path }}/reports/99/output/">Supplies</a>
 			</li>
 			<li>Contracts
 				<ul>
@@ -53,8 +51,6 @@
 					<a href="{{context_path}}/reports/{{properties.local_reports_id }}/output/">Local Reports</a>
 				</li>
 			{% endif %}
-			<li>
-				<a href="{{context_path}}/reports/293/output/">General Import</a>
 			</li>
 			<li>
 				<a
@@ -133,6 +129,7 @@
 		</table>
 
 		<h3>Industry Info</h3>
+
 		<ul>
 			<li>
 				<a href="{{ context_path }}/reports/71/output/">Market Participants</a>
@@ -183,6 +180,16 @@
 			</li>
 		</ul>
 
+
+		<h3>Gas</h3>
+
+			<ul>
+				<li><a href="{{context_path}}/reports/437/output/">Supplies</a></li>
+				<li><a href="{{context_path}}/reports/395/output/">Contracts</a>
+				<li><a href="{{context_path}}/reports/451/output/">Read Types</a>
+			</ul>
+
+
 		<h3>For Editors</h3>
 
 		<ul>
@@ -202,8 +209,12 @@
 				<a href="{{ context_path }}/reports/171/output/">System</a>
 			</li>
 			<li>
-				<a href="{{ context_path }}/reports/195/output/">Comparison against ECOES</a>
+				<a href="{{ context_path }}/reports/195/output/">Comparison against
+        ECOES</a>
 			</li>
+     	<li>
+				<a href="{{context_path}}/reports/293/output/">General Import</a>
 		</ul>
+
   </body>
 </html>

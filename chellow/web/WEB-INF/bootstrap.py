@@ -1,6 +1,6 @@
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Text, Numeric, Enum,
-    create_engine, ForeignKey, Sequence, UniqueConstraint)
+    create_engine, ForeignKey, Sequence, UniqueConstraint, null)
 from sqlalchemy.orm import sessionmaker, relationship
 import datetime
 import pytz
@@ -653,6 +653,177 @@ class Report(Base):
             template = None
 
         self.template = template
+
+
+class GReadType(Base):
+    __tablename__ = 'g_read_type'
+    id = Column('id', Integer, primary_key=True)
+    code = Column(String, unique=True, nullable=False)
+    description = Column(String, unique=True, nullable=False)
+
+    def __init__(self, code, description):
+        self.code = code
+        self.description = description
+
+
+class GUnits(Base):
+    __tablename__ = 'g_units'
+    id = Column('id', Integer, primary_key=True)
+    code = Column(String, nullable=False, index=True, unique=True)
+    description = Column(String, nullable=False)
+    factor = Column(Numeric, nullable=False)
+
+
+class GRegisterRead(Base):
+    __tablename__ = 'g_register_read'
+    id = Column('id', Integer, primary_key=True)
+    g_bill_id = Column(
+        Integer, ForeignKey('g_bill.id', ondelete='CASCADE'), nullable=False,
+        index=True)
+    msn = Column(String, nullable=False, index=True)
+    mprn = Column(String, nullable=False)
+    cf = Column(Numeric, nullable=False)
+    cv = Column(Numeric, nullable=False)
+    g_units_id = Column(Integer, ForeignKey('g_units.id'), index=True)
+    previous_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    previous_vol = Column(Numeric, nullable=False)
+    g_previous_type_id = Column(
+        Integer, ForeignKey('g_read_type.id'), index=True)
+    g_previous_type = relationship(
+        "GReadType",
+        primaryjoin="GReadType.id==GRegisterRead.g_previous_type_id")
+    present_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    present_vol = Column(Numeric, nullable=False)
+    g_present_type_id = Column(
+        Integer, ForeignKey('g_read_type.id'), index=True)
+    g_present_type = relationship(
+        "GReadType",
+        primaryjoin="GReadType.id==GRegisterRead.g_present_type_id")
+
+
+class GEra(Base):
+    __tablename__ = 'g_era'
+    id = Column('id', Integer, primary_key=True)
+    g_supply_id = Column(
+        Integer, ForeignKey('g_supply.id'), nullable=False, index=True)
+    start_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    finish_date = Column(DateTime(timezone=True), index=True)
+    msn = Column(String)
+    mprn = Column(String)
+    g_supplier_contract_id = Column(
+        Integer, ForeignKey('g_contract.id'), index=True)
+    g_supplier_contract = relationship(
+        "GContract", primaryjoin="GContract.id==GEra.g_supplier_contract_id")
+
+
+class GBillType(Base):
+    __tablename__ = 'g_bill_type'
+    id = Column('id', Integer, primary_key=True)
+    code = Column(String, unique=True, nullable=False)
+    description = Column(String, unique=True, nullable=False)
+    g_bills = relationship('GBill', backref='g_bill_type')
+
+    def __init__(self, code, description):
+        self.code = code
+        self.description = description
+
+
+class GSupply(Base):
+    __tablename__ = 'g_supply'
+    id = Column('id', Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    note = Column(Text, nullable=False)
+    g_eras = relationship('GEra', backref='g_supply')
+    g_bills = relationship('GBill', backref='g_supply')
+
+
+class GBill(Base):
+    __tablename__ = 'g_bill'
+    id = Column('id', Integer, primary_key=True)
+    g_batch_id = Column(
+        Integer, ForeignKey('g_batch.id'), nullable=False, index=True)
+    g_supply_id = Column(
+        Integer, ForeignKey('g_supply.id'), nullable=False, index=True)
+    issue_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    start_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    finish_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    net = Column(Numeric, nullable=False)
+    vat = Column(Numeric, nullable=False)
+    gross = Column(Numeric, nullable=False)
+    account = Column(String, nullable=False)
+    reference = Column(String, nullable=False)
+    g_bill_type_id = Column(Integer, ForeignKey('g_bill_type.id'), index=True)
+    breakdown = Column(String, nullable=False)
+    kwh = Column(Numeric, nullable=False)
+    g_reads = relationship(
+        'GRegisterRead', backref='g_bill', cascade="all, delete-orphan",
+        passive_deletes=True)
+
+
+class GBatch(Base):
+    __tablename__ = 'g_batch'
+    id = Column('id', Integer, primary_key=True)
+    g_contract_id = Column(
+        Integer, ForeignKey('g_contract.id'), nullable=False, index=True)
+    reference = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    bills = relationship('GBill', backref='g_batch')
+    __table_args__ = (UniqueConstraint('g_contract_id', 'reference'), )
+
+
+class GContract(Base):
+    __tablename__ = 'g_contract'
+    id = Column('id', Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    charge_script = Column(Text, nullable=False)
+    properties = Column(Text, nullable=False)
+    state = Column(Text, nullable=False)
+    g_rate_scripts = relationship(
+        "GRateScript", back_populates="g_contract",
+        primaryjoin="GContract.id==GRateScript.g_contract_id")
+    g_batches = relationship('GBatch', backref='g_contract')
+
+    g_start_rate_script_id = Column(
+        Integer, ForeignKey(
+            'g_rate_script.id', use_alter=True,
+            name='g_contract_start_g_rate_script_id_fkey'))
+    g_finish_rate_script_id = Column(
+        Integer, ForeignKey(
+            'g_rate_script.id', use_alter=True,
+            name='g_contract_finish_g_rate_script_id_fkey'))
+
+    g_start_rate_script = relationship(
+        "GRateScript",
+        primaryjoin="GRateScript.id==GContract.g_start_rate_script_id")
+    g_finish_rate_script = relationship(
+        "GRateScript",
+        primaryjoin="GRateScript.id==GContract.g_finish_rate_script_id")
+
+    @staticmethod
+    def get_core_by_name(sess, name):
+        cont = GContract.find_core_by_name(sess, name)
+        if cont is None:
+            raise UserException(
+                "There isn't a core contract with the name '" + name + "'.")
+        return cont
+
+    @staticmethod
+    def find_core_by_name(sess, name):
+        return sess.query(GContract).filter(
+            GContract.charge_script == null(), GContract.name == name).first()
+
+
+class GRateScript(Base):
+    __tablename__ = "g_rate_script"
+    id = Column('id', Integer, primary_key=True)
+    g_contract_id = Column(Integer, ForeignKey('g_contract.id'), index=True)
+    g_contract = relationship(
+        "GContract", back_populates="g_rate_scripts",
+        primaryjoin="GContract.id==GRateScript.g_contract_id")
+    start_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    finish_date = Column(DateTime(timezone=True), nullable=True, index=True)
+    script = Column(Text, nullable=False)
+    __table_args__ = (UniqueConstraint('g_contract_id', 'start_date'),)
 
 
 def parse_hh_date(date_str):

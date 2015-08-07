@@ -5,7 +5,6 @@ import sys
 import chellow
 from wsgiref.simple_server import make_server
 import os.path
-import requests
 from sqlalchemy import (
     Column, Integer, String, Boolean, DateTime, Text, Numeric, Enum,
     create_engine, ForeignKey, Sequence, UniqueConstraint)
@@ -17,6 +16,9 @@ import os
 import hashlib
 import pg8000
 from chellow import app
+import json
+import ast
+import requests
 pg8000.dbapi = pg8000
 
 
@@ -94,6 +96,7 @@ class Site(Base):
     code = Column(String, unique=True, nullable=False)
     name = Column(String, unique=True, nullable=False)
     site_eras = relationship('SiteEra', backref='site')
+    site_g_eras = relationship('SiteGEra', backref='site')
     snags = relationship('Snag', backref='site')
 
     def __init__(self, code, name):
@@ -389,7 +392,7 @@ class Era(Base):
         Integer, ForeignKey('contract.id'), nullable=False, index=True)
     hhdc_contract = relationship(
         "Contract", primaryjoin="Contract.id==Era.hhdc_contract_id")
-    hhdc_account = Column(String)
+    hhdc_account = Column(String, nullable=False)
     msn = Column(String)
     pc_id = Column(
         Integer, ForeignKey('pc.id'), nullable=False, index=True)
@@ -474,7 +477,6 @@ class BillType(Base):
     id = Column('id', Integer, primary_key=True)
     code = Column(String, unique=True, nullable=False)
     description = Column(String, unique=True, nullable=False)
-    bills = relationship('Bill', backref='bill_type')
 
     def __init__(self, code, description):
         self.code = code
@@ -500,6 +502,7 @@ class Bill(Base):
     account = Column(String, nullable=False)
     reference = Column(String, nullable=False)
     bill_type_id = Column(Integer, ForeignKey('bill_type.id'), index=True)
+    bill_type = relationship('BillType')
     breakdown = Column(String, nullable=False)
     kwh = Column(Numeric, nullable=False)
     reads = relationship(
@@ -694,6 +697,217 @@ class Report(Base):
         self.template = template
 
 
+class SiteGEra(Base):
+    __tablename__ = 'site_g_era'
+    id = Column('id', Integer, Sequence('site_g_era_id_seq'), primary_key=True)
+    site_id = Column(Integer, ForeignKey('site.id'))
+    g_era_id = Column(Integer, ForeignKey('g_era.id'))
+    is_physical = Column(Boolean, nullable=False)
+
+    def __init__(self, site, g_era, is_physical):
+        self.site = site
+        self.g_era = g_era
+        self.is_physical = is_physical
+
+
+class GContract(Base):
+    __tablename__ = 'g_contract'
+    id = Column('id', Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    charge_script = Column(Text, nullable=False)
+    properties = Column(Text, nullable=False)
+    state = Column(Text, nullable=False)
+    g_rate_scripts = relationship(
+        "GRateScript", back_populates="g_contract",
+        primaryjoin="GContract.id==GRateScript.g_contract_id")
+    g_batches = relationship('GBatch', backref='g_contract')
+
+    start_g_rate_script_id = Column(
+        Integer, ForeignKey(
+            'g_rate_script.id', use_alter=True,
+            name='g_contract_start_g_rate_script_id_fkey'))
+    finish_g_rate_script_id = Column(
+        Integer, ForeignKey(
+            'g_rate_script.id', use_alter=True,
+            name='g_contract_finish_g_rate_script_id_fkey'))
+
+    start_g_rate_script = relationship(
+        "GRateScript",
+        primaryjoin="GRateScript.id==GContract.start_g_rate_script_id")
+    finish_g_rate_script = relationship(
+        "GRateScript",
+        primaryjoin="GRateScript.id==GContract.finish_g_rate_script_id")
+
+    def __init__(self, sess, name, charge_script, properties):
+        self.update(sess, name, charge_script, properties)
+        self.update_state({})
+
+    def update(self, sess, name, charge_script, properties):
+        name = name.strip()
+        if len(name) == 0:
+            raise UserException("The gas contract name can't be blank.")
+        self.name = name
+
+        try:
+            ast.parse(charge_script)
+        except SyntaxError, e:
+            raise UserException(str(e))
+        except NameError, e:
+            raise UserException(str(e))
+        self.charge_script = charge_script
+        self.properties = json.dumps(properties)
+
+    def update_state(self, state):
+        self.state = json.dumps(state)
+
+    def delete(self, sess):
+        self.g_rate_scripts[:] = []
+        sess.delete(self)
+
+    @staticmethod
+    def insert(
+            sess, name, charge_script, properties, start_date,
+            finish_date, rate_script):
+        contract = GContract(sess, name, charge_script, properties)
+        sess.add(contract)
+        sess.flush()
+        rscript = contract.insert_g_rate_script(sess, start_date, rate_script)
+        contract.update_g_rate_script(
+            sess, rscript, start_date, finish_date, rate_script)
+        return contract
+
+    @staticmethod
+    def get_core_by_name(sess, name):
+        cont = GContract.find_core_by_name(sess, name)
+        if cont is None:
+            raise UserException(
+                "There isn't a core contract with the name '" + name + "'.")
+        return cont
+
+
+class GRateScript(Base):
+    __tablename__ = "g_rate_script"
+    id = Column('id', Integer, primary_key=True)
+    g_contract_id = Column(Integer, ForeignKey('g_contract.id'), index=True)
+    g_contract = relationship(
+        "GContract", back_populates="g_rate_scripts",
+        primaryjoin="GContract.id==GRateScript.g_contract_id")
+    start_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    finish_date = Column(DateTime(timezone=True), nullable=True, index=True)
+    script = Column(Text, nullable=False)
+    __table_args__ = (UniqueConstraint('g_contract_id', 'start_date'),)
+
+    def __init__(self, g_contract, start_date, finish_date, script):
+        self.g_contract = g_contract
+        self.start_date = start_date
+        self.finish_date = finish_date
+        self.script = json.dumps(script)
+
+
+class GBatch(Base):
+    __tablename__ = 'g_batch'
+    id = Column('id', Integer, primary_key=True)
+    g_contract_id = Column(
+        Integer, ForeignKey('g_contract.id'), nullable=False, index=True)
+    reference = Column(String, nullable=False)
+    description = Column(String, nullable=False)
+    bills = relationship('GBill', backref='g_batch')
+    __table_args__ = (UniqueConstraint('g_contract_id', 'reference'), )
+
+
+class GBill(Base):
+    __tablename__ = 'g_bill'
+    id = Column('id', Integer, primary_key=True)
+    g_batch_id = Column(
+        Integer, ForeignKey('g_batch.id'), nullable=False, index=True)
+    g_supply_id = Column(
+        Integer, ForeignKey('g_supply.id'), nullable=False, index=True)
+    bill_type_id = Column(Integer, ForeignKey('bill_type.id'), index=True)
+    bill_type = relationship(
+        "BillType", primaryjoin="BillType.id==GBill.bill_type_id")
+    reference = Column(String, nullable=False)
+    account = Column(String, nullable=False)
+    issue_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    start_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    finish_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    kwh = Column(Numeric, nullable=False)
+    net_gbp = Column(Numeric, nullable=False)
+    vat_gbp = Column(Numeric, nullable=False)
+    gross_gbp = Column(Numeric, nullable=False)
+    raw_lines = Column(Text, nullable=False)
+    breakdown = Column(Text, nullable=False)
+    g_reads = relationship(
+        'GRegisterRead', backref='g_bill', cascade="all, delete-orphan",
+        passive_deletes=True)
+
+
+class GEra(Base):
+    __tablename__ = 'g_era'
+    id = Column('id', Integer, primary_key=True)
+    g_supply_id = Column(
+        Integer, ForeignKey('g_supply.id'), nullable=False, index=True)
+    start_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    finish_date = Column(DateTime(timezone=True), index=True)
+    msn = Column(String)
+    g_contract_id = Column(Integer, ForeignKey('g_contract.id'), index=True)
+    g_contract = relationship(
+        "GContract", primaryjoin="GContract.id==GEra.g_contract_id")
+    account = Column(String, nullable=False)
+
+
+class GReadType(Base):
+    __tablename__ = 'g_read_type'
+    id = Column('id', Integer, primary_key=True)
+    code = Column(String, unique=True, nullable=False)
+    description = Column(String, unique=True, nullable=False)
+
+    def __init__(self, code, description):
+        self.code = code
+        self.description = description
+
+
+class GUnits(Base):
+    __tablename__ = 'g_units'
+    id = Column('id', Integer, primary_key=True)
+    code = Column(String, nullable=False, index=True, unique=True)
+    description = Column(String, nullable=False)
+    factor = Column(Numeric, nullable=False)
+
+
+class GRegisterRead(Base):
+    __tablename__ = 'g_register_read'
+    id = Column('id', Integer, primary_key=True)
+    g_bill_id = Column(
+        Integer, ForeignKey('g_bill.id', ondelete='CASCADE'), nullable=False,
+        index=True)
+    msn = Column(String, nullable=False, index=True)
+    prev_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    prev_value = Column(Numeric, nullable=False)
+    prev_type_id = Column(Integer, ForeignKey('g_read_type.id'), index=True)
+    prev_type = relationship(
+        "GReadType",
+        primaryjoin="GReadType.id==GRegisterRead.prev_type_id")
+    pres_date = Column(DateTime(timezone=True), nullable=False, index=True)
+    pres_value = Column(Numeric, nullable=False)
+    pres_type_id = Column(Integer, ForeignKey('g_read_type.id'), index=True)
+    pres_type = relationship(
+        "GReadType",
+        primaryjoin="GReadType.id==GRegisterRead.pres_type_id")
+    correction_factor = Column(Numeric, nullable=False)
+    calorific_value = Column(Numeric, nullable=False)
+    units = Column(String, nullable=False)
+
+
+class GSupply(Base):
+    __tablename__ = 'g_supply'
+    id = Column('id', Integer, primary_key=True)
+    mprn = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False)
+    note = Column(Text, nullable=False)
+    g_eras = relationship('GEra', backref='g_supply')
+    g_bills = relationship('GBill', backref='g_supply')
+
+
 def chellow_test_setup():
     downloads_path = os.path.join(chellow.app.instance_path, 'downloads')
     if os.path.exists(downloads_path):
@@ -702,21 +916,16 @@ def chellow_test_setup():
 
 
 def chellow_start():
+    instance_path = chellow.app.instance_path
+    started_path = os.path.join(instance_path, 'started')
+    if os.path.exists(started_path):
+        print "The file " + started_path + " is present so I think it's " \
+            "already started."
+        return
     subprocess.Popen(["chellow_watchdog_start"])
-    print "Testing if server is up..."
-    status_code = None
-    health_url = ''.join(
-        [
-            'http://localhost:', str(chellow.app.config['CHELLOW_PORT']),
-            '/health'])
-    while status_code != 200:
-        try:
 
-            print("Trying health URL " + health_url)
-            r = requests.get(health_url)
-            status_code = r.status_code
-        except requests.exceptions.ConnectionError as e:
-            print(e)
+    while not os.path.exists(started_path):
+        print("chellow_start: Checking if started")
         time.sleep(1)
 
 
@@ -727,29 +936,31 @@ def chellow_watchdog_start():
     restart_path = os.path.join(instance_path, 'restart')
     flag_path = os.path.join(instance_path, 'keep_running')
     stopped_path = os.path.join(instance_path, 'stopped')
-    health_url = ''.join(
-        [
-            'http://localhost:', str(chellow.app.config['CHELLOW_PORT']),
-            '/health'])
     while not os.path.exists(flag_path):
         time.sleep(1)
     while True:
         if not os.path.exists(flag_path):
+            print("Watchdog: No 'keep_running' ")
             if os.path.exists(stopped_path):
+                print("Watchdog: 'stopped' present.")
                 if os.path.exists(restart_path):
-                    print("Attempting restart")
+                    print("Watchdog: Attempting restart")
                     subprocess.Popen(["start_chellow_process"])
                     while not os.path.exists(flag_path):
                         time.sleep(1)
                 else:
                     break
             else:
+                health_url = ''.join(
+                    [
+                        'http://localhost:',
+                        str(chellow.app.config['CHELLOW_PORT']), '/health'])
                 try:
                     print("Trying health URL " + health_url)
                     requests.get(health_url)
-                except Exception as e:
-                    print(str(e))
-
+                except requests.exceptions.ConnectionError:
+                    pass
+                print("Watchdog: no 'stopped'.")
         time.sleep(1)
     print "Exiting watchdog."
 
@@ -990,6 +1201,15 @@ def start_chellow_process():
         session.commit()
 
         set_read_write(session)
+        for code, desc in (
+                ("A", "Actual"),
+                ("C", "Customer"),
+                ("E", "Estimated"),
+                ("S", "Deemed read")):
+            session.add(GReadType(code, desc))
+        session.commit()
+
+        set_read_write(session)
         session.execute(
             "alter database " + db_name +
             " set default_transaction_isolation = 'serializable'")
@@ -1056,6 +1276,10 @@ def start_chellow_process():
     if os.path.exists(stopped_path):
         os.remove(stopped_path)
 
+    started_path = os.path.join(instance_path, 'started')
+    with open(started_path, 'a'):
+        os.utime(started_path, None)
+
     while os.path.exists(flag_path):
         httpd.handle_request()
 
@@ -1076,17 +1300,18 @@ def start_chellow_process():
     ns['on_shut_down'](None)
     with open(stopped_path, 'a'):
         os.utime(stopped_path, None)
+    if os.path.exists(started_path):
+        os.remove(started_path)
 
 
 def chellow_stop():
     flag_path = os.path.join(chellow.app.instance_path, 'keep_running')
     if os.path.exists(flag_path):
         os.remove(flag_path)
+    else:
+        print("chellow_stop: Not running.")
+        return
     stopped_path = os.path.join(chellow.app.instance_path, 'stopped')
-    for i in range(15):
-        print "Checking if stopped."
-        if not os.path.exists(stopped_path):
-            print "Has stopped."
-            break
-
+    while not os.path.exists(stopped_path):
+        print "chellow_stop: Checking if stopped."
         time.sleep(1)
