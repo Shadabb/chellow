@@ -6,7 +6,7 @@ import decimal
 import collections
 import datetime
 import traceback
-import json
+import simplejson as json
 
 clogs = collections.deque()
 
