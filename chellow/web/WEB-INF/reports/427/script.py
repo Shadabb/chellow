@@ -2,7 +2,7 @@ from net.sf.chellow.monad import Monad
 import collections
 import db
 import templater
-import json
+import simplejson as json
 Monad.getUtils()['impt'](globals(), 'db', 'utils', 'templater')
 GRegisterRead, GBill = db.GRegisterRead, db.GBill
 render = templater.render

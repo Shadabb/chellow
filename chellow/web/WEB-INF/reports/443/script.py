@@ -2,7 +2,7 @@ from net.sf.chellow.monad import Monad
 import utils
 import templater
 import db
-import json
+import simplejson as json
 
 Monad.getUtils()['impt'](globals(), 'db', 'utils', 'templater')
 UserException = utils.UserException

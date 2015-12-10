@@ -13,7 +13,7 @@ import sys
 import os
 import threading
 import csv
-import json
+import simplejson as json
 
 Monad.getUtils()['impt'](
     globals(), 'templater', 'db', 'computer', 'utils', 'dloads', 'g_engine')
