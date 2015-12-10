@@ -1,1 +1,1 @@
-{'name': 'G Supplier Contract Add'}
+{'name': 'G Contract Add'}

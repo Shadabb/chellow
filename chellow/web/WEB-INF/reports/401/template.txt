@@ -31,9 +31,6 @@
       <fieldset>
         <legend>Add a contract</legend>
         <br>
-        <label>Is System?</label>
-        {{input_boolean('is_system')}}
-        <br>
         <label>Name</label>
         {{input_text('name')}}
         <br><br>

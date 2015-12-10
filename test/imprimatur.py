@@ -10663,6 +10663,11 @@ def virtual_bill(supply_source):
         'regexes': [
             r'3409.15883838']},
     {
+        'name': "Show insert gas contract",
+        'path': '/chellow/reports/401/output/',
+        'status_code': 200},
+
+    {
         'name': "Insert gas contract",
         'path': '/chellow/reports/401/output/',
         'method': 'post',
