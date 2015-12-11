@@ -27,7 +27,7 @@
         <input type="submit" value="Search">
       </fieldset>
     </form>
-    {% if eras %}
+    {% if g_eras %}
       <p>
         Only the first {{max_results}} supply eras of the search results are shown.
       </p>
@@ -35,22 +35,22 @@
         <caption>Gas Supplies</caption>
         <thead>
           <tr>
-            <th rowspan="2">Supply</th>
-            <th rowspan="2">MPRN</th>
-            <th rowspan="2">Meter Serial Number</th>
-            <th colspan="2">Contract</th>
-          </tr>
-          <tr>
-            <th rowspan="2">Contract</th>
-            <th rowspan="2">Account</th>
+            <th>View</th>
+            <th>Name</th>
+            <th>MPRN</th>
+            <th>Meter Serial Number</th>
+            <th>Contract</th>
+            <th>Account</th>
           </tr>
         </thead>
         <tbody>
           {% for g_era in g_eras %}
             <tr>
               <td>
-                <a href="{{context_path}}/reports/423/output/?g_supply_id={{g_era.g_supply_id}}">supply</a>
+                <a href="{{context_path}}/reports/423/output/?g_supply_id={{g_era.g_supply_id}}">view</a>
               </td>
+              <td>{{g_era.g_supply.name}}</td>
+              <td>{{g_era.g_supply.mprn}}</td>
               <td>{{g_era.msn}}</td>
               <td>
                 <a href="{{context_path}}/reports/399/output/?g_contract_id={{g_era.g_contract.id}}">{{g_era.g_contract.name}}</a>
