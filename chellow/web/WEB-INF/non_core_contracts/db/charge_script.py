@@ -3277,7 +3277,7 @@ class GContract(Base, PersistentClass):
             raise UserException(
                 "The start date can't be after the finish date.")
 
-        rscript.script = json.dumps(script)
+        rscript.script = json.dumps(script, sort_keys=True, indent='  ')
 
         prev_rscript = self.find_g_rate_script_at(
             sess, rscript.start_date - HH)

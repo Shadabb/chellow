@@ -60,7 +60,11 @@ def form_decimal(inv, name):
 
 def form_json(inv, name):
         json_str = form_str(inv, name)
-        return json.loads(json_str)
+        try:
+            return json.loads(json_str)
+        except json.JSONDecodeError, e:
+            raise UserException(
+                "Problem with the format of the script: " + str(e))
 
 
 def prev_hh(dt):

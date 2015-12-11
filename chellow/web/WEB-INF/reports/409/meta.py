@@ -1,1 +1,1 @@
-{'name': 'G Supplier Rate Script Edit'}
+{'name': 'G Rate Script Edit'}
