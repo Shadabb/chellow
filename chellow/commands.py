@@ -699,7 +699,7 @@ class Report(Base):
 
 class SiteGEra(Base):
     __tablename__ = 'site_g_era'
-    id = Column('id', Integer, Sequence('site_g_era_id_seq'), primary_key=True)
+    id = Column('id', Integer, primary_key=True)
     site_id = Column(Integer, ForeignKey('site.id'))
     g_era_id = Column(Integer, ForeignKey('g_era.id'))
     is_physical = Column(Boolean, nullable=False)
