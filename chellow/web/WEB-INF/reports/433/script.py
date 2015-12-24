@@ -22,6 +22,12 @@ def make_fields(sess, importer, message=None):
             fields['successful_max_registers'] = \
                 max(len(bill['reads']) for bill in
                     imp_fields['successful_bills'])
+        if 'failed_bills' in imp_fields and \
+                len(imp_fields['failed_bills']) > 0:
+            fields['failed_max_registers'] = \
+                max(len(bill['reads']) for bill in
+                    imp_fields['failed_bills'])
+
         fields.update(imp_fields)
         fields['status'] = importer.status()
     return fields
