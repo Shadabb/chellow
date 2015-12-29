@@ -89,11 +89,9 @@
             <th>{{i}} Pres Date</th>
             <th>{{i}} Pres Value</th>
             <th>{{i}} Pres Type</th>
-            <th>{{i}} Units Consumed</th>
             <th>{{i}} Units</th>
             <th>{{i}} Correction Factor</th>
             <th>{{i}} Calorific Value</th>
-            <th>{{i}} kWh</th>
           {% endfor %}
         </tr>
       </thead>
@@ -122,11 +120,9 @@
               <td>{{read.pres_date|hh_format}}</td>
               <td>{{read.pres_value}}</td>
               <td>{{read.pres_type.code}}</td>
-              <td>{{read.units_consumed}}</td>
               <td>{{read.units}}</th>
               <td>{{read.correction_factor}}</td>
               <td>{{read.calorific_value}}</td>
-              <td>{{read.kwh}}</td>
             {% endfor %}
           </tr>
         {% endfor %}
