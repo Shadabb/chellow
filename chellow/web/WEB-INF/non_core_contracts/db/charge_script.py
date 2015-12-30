@@ -2793,21 +2793,22 @@ class GRegisterRead(Base, PersistentClass):
     pres_type = relationship(
         "GReadType",
         primaryjoin="GReadType.id==GRegisterRead.pres_type_id")
-    units = Column(String, nullable=False)
+    g_units_id = Column(
+        Integer, ForeignKey('g_units.id'), nullable=False, index=True)
     correction_factor = Column(Numeric, nullable=False)
     calorific_value = Column(Numeric, nullable=False)
 
     def __init__(
             self, g_bill, msn, prev_value, prev_date, prev_type, pres_value,
-            pres_date, pres_type, units, correction_factor, calorific_value):
+            pres_date, pres_type, g_units, correction_factor, calorific_value):
         self.g_bill = g_bill
         self.update(
             msn, prev_value, prev_date, prev_type, pres_value, pres_date,
-            pres_type, units, correction_factor, calorific_value)
+            pres_type, g_units, correction_factor, calorific_value)
 
     def update(
             self, msn, prev_value, prev_date, prev_type, pres_value, pres_date,
-            pres_type, units, correction_factor, calorific_value):
+            pres_type, g_units, correction_factor, calorific_value):
         self.msn = msn
         self.prev_value = prev_value
         self.prev_date = prev_date
@@ -2815,7 +2816,7 @@ class GRegisterRead(Base, PersistentClass):
         self.pres_value = pres_value
         self.pres_date = pres_date
         self.pres_type = pres_type
-        self.units = units
+        self.g_units = g_units
         self.correction_factor = correction_factor
         self.calorific_value = calorific_value
 
@@ -3468,6 +3469,24 @@ class GRateScript(Base, PersistentClass):
         self.start_date = start_date
         self.finish_date = finish_date
         self.script = json.dumps(script)
+
+
+class GUnits(Base):
+    __tablename__ = 'g_units'
+    id = Column('id', Integer, primary_key=True)
+    code = Column(String, nullable=False, index=True, unique=True)
+    description = Column(String, nullable=False)
+    factor = Column(Numeric, nullable=False)
+    g_register_reads = relationship('GRegisterRead', backref='g_units')
+
+    @staticmethod
+    def get_by_code(sess, code):
+        code = code.strip()
+        typ = sess.query(GUnits).filter_by(code=code).first()
+        if typ is None:
+            raise UserException(
+                "The gas units with code " + code + " can't be found.")
+        return typ
 
 
 def session():

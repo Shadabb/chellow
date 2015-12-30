@@ -19,6 +19,7 @@ from chellow import app
 import json
 import ast
 import requests
+from decimal import Decimal
 pg8000.dbapi = pg8000
 
 
@@ -872,6 +873,12 @@ class GUnits(Base):
     code = Column(String, nullable=False, index=True, unique=True)
     description = Column(String, nullable=False)
     factor = Column(Numeric, nullable=False)
+    g_register_reads = relationship('GRegisterRead', backref='g_units')
+
+    def __init__(self, code, description, factor):
+        self.code = code
+        self.description = description
+        self.factor = factor
 
 
 class GRegisterRead(Base):
@@ -895,7 +902,8 @@ class GRegisterRead(Base):
         primaryjoin="GReadType.id==GRegisterRead.pres_type_id")
     correction_factor = Column(Numeric, nullable=False)
     calorific_value = Column(Numeric, nullable=False)
-    units = Column(String, nullable=False)
+    g_units_id = Column(
+        Integer, ForeignKey('g_units.id'), nullable=False, index=True)
 
 
 class GSupply(Base):
@@ -1207,6 +1215,18 @@ def start_chellow_process():
                 ("E", "Estimated"),
                 ("S", "Deemed read")):
             session.add(GReadType(code, desc))
+        session.commit()
+
+        set_read_write(session)
+        for code, desc, factor_str in (
+                ("MCUF", "Thousands of cubic feet", '28.317'),
+                ("HCUF", "Hundreds of cubic feet", '2.8317'),
+                ("TCUF", "Tens of cubic feet", '0.28317'),
+                ("OCUF", "One cubic foot", '0.028317'),
+                ("HM3", "Hundreds of cubic metres", '100'),
+                ("TM3", "Tens of cubic metres", '10'),
+                ("NM3", "Tenths of cubic metres", '0.1')):
+            session.add(GUnits(code, desc, Decimal(factor_str)))
         session.commit()
 
         set_read_write(session)

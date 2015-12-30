@@ -158,11 +158,6 @@ def content():
                         v = bdown[title]
                     elif hasattr(covered_bill, title):
                         v = getattr(covered_bill, title)
-                    else:
-                        for g_read in covered_bill.g_reads:
-                            if hasattr(g_read, title):
-                                v = getattr(g_read, title)
-                                break
 
                     if v is not None:
                         if title.endswith('-rate') or \
@@ -180,6 +175,22 @@ def content():
                                     "Problem with key " + str(k) +
                                     " and value " + str(v) + " for existing " +
                                     str(vals[k]))
+
+                    if title in (
+                            'correction_factor', 'calorific_value',
+                            'units_code', 'units_factor'):
+                        if k not in vals:
+                            vals[k] = set()
+                        for g_read in covered_bill.g_reads:
+                            if title in ('units_code', 'units_factor'):
+                                g_units = g_read.g_units
+                                if title == 'units_code':
+                                    v = g_units.code
+                                else:
+                                    v = g_units.factor
+                            else:
+                                v = getattr(g_read, title)
+                            vals[k].add(v)
 
             for g_era in sess.query(GEra).filter(
                     GEra.g_supply == g_supply,
@@ -212,7 +223,7 @@ def content():
                         v = data_source.bill[k]
                         if k.endswith('-rate') or k in (
                                 'correction_factor', 'calorific_value',
-                                'units'):
+                                'units_code', 'units_factor'):
                             if k_str not in vals:
                                 vals[k_str] = set()
                             vals[k_str].add(v)

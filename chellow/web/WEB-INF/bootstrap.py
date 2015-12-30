@@ -672,6 +672,7 @@ class GUnits(Base):
     code = Column(String, nullable=False, index=True, unique=True)
     description = Column(String, nullable=False)
     factor = Column(Numeric, nullable=False)
+    g_register_reads = relationship('GRegisterRead', backref='g_units')
 
 
 class GRegisterRead(Base):

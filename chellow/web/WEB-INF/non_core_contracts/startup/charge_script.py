@@ -6,7 +6,7 @@ LIBS = (
     'utils', 'db', 'templater', 'bank_holidays', 'computer', 'scenario',
     'bsuos', 'tlms', 'general_import', 'hh_importer', 'bill_import', 'edi_lib',
     'system_price', 'rcrc', 'duos', 'triad_rates', 'triad', 'ccl', 'aahedc',
-    'dloads', 'ro', 'g_bill_import', 'g_engine')
+    'dloads', 'ro', 'g_bill_import', 'g_engine', 'g_ccl')
 
 
 class LibDict(dict):
