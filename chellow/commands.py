@@ -1225,7 +1225,8 @@ def start_chellow_process():
                 ("OCUF", "One cubic foot", '0.028317'),
                 ("HM3", "Hundreds of cubic metres", '100'),
                 ("TM3", "Tens of cubic metres", '10'),
-                ("NM3", "Tenths of cubic metres", '0.1')):
+                ("NM3", "Tenths of cubic metres", '0.1'),
+                ("M3", "Cubic metres", '1')):
             session.add(GUnits(code, desc, Decimal(factor_str)))
         session.commit()
 
