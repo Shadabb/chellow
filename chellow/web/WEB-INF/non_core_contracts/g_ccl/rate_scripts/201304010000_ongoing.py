@@ -1,2 +1,2 @@
-def ccl_rate():
-    return 0.00509*1.032
+{
+    "ccl_gbp_per_kwh": 0.00525288}
