@@ -77,8 +77,8 @@ def content():
         for title in bill_titles:
             for prefix in ('covered_', 'virtual_'):
                 titles.append(prefix + title)
-            if title.endswith('-gbp'):
-                titles.append('difference-' + title)
+            if title.endswith('_gbp'):
+                titles.append('difference_' + title)
 
         csv_writer.writerow(titles)
         for g_bill in g_bills:
@@ -160,7 +160,7 @@ def content():
                         v = getattr(covered_bill, title)
 
                     if v is not None:
-                        if title.endswith('-rate') or \
+                        if title.endswith('_rate') or \
                                 title in (
                                     'correction_factor', 'calorific_value',
                                     'units'):
@@ -221,7 +221,7 @@ def content():
                     if k in data_source.bill:
                         k_str = 'virtual_' + k
                         v = data_source.bill[k]
-                        if k.endswith('-rate') or k in (
+                        if k.endswith('_rate') or k in (
                                 'correction_factor', 'calorific_value',
                                 'units_code', 'units_factor'):
                             if k_str not in vals:
@@ -240,6 +240,12 @@ def content():
                     vals[k] = ','.join(map(str, v))
                 elif isinstance(v, set):
                     vals[k] = v.pop() if len(v) == 1 else ''
+
+            for i, title in enumerate(titles):
+                if title.startswith('difference_'):
+                    covered_val = float(vals[titles[i - 2]])
+                    virtual_val = float(vals[titles[i - 1]])
+                    vals[title] = covered_val - virtual_val
 
             csv_writer.writerow(
                 [(vals[k] if vals[k] is not None else '') for k in titles])
