@@ -128,8 +128,8 @@ Edit PostgreSQL config file to accept all local connections:
 
 Find the lines:
 
- local   all    all                    peer
- host    all    all    127.0.0.1/32    peer
+ local   all    all                    trust
+ host    all    all    127.0.0.1/32    trust
 
 and change them to:
 
