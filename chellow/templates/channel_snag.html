@@ -6,6 +6,7 @@
 {% endblock %}
 
 {% block nav %}
+
 	&raquo; <a href="{{context_path}}/hhdc_contracts">HHDC Contracts</a> &raquo; 
 	<a href="{{context_path}}/hhdc_contracts/{{snag.channel.era.hhdc_contract.id}}">{{snag.channel.era.hhdc_contract.name}}</a> &raquo; 
 	<a href="{{context_path}}/channel_snags?hhdc_contract_id={{snag.channel.era.hhdc_contract.id}}&amp;days_hidden=5">Channel Snags</a> &raquo; 
@@ -24,7 +25,11 @@
 	<!-- Section Content -->
 	<div class="section-content">
 		<div class="section-data">
+<<<<<<< HEAD
 			<table class="DataTable widthAuto">
+=======
+			<table class="DataTable">
+>>>>>>> Update Channel Module
 				<tbody>
 					<tr>
 						<th>Date Created</th>
