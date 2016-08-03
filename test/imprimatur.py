@@ -773,7 +773,7 @@ def virtual_bill_titles():
 
         # Check table of existing eras is there
         'regexes': [
-            r"<table>\s*<caption>Existing Eras</caption>",
+            r'<table class="DataTable widthAuto">\s*<caption>Existing Eras</caption>',
 
             # Check reference to ongoing era
             r"<td>2003-08-03 00:00</td>\s*<td>\s*Ongoing", ],

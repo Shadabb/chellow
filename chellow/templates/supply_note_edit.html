@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block title %}
-	Supplies &gt; {{supply.id}} &gt; Notes &gt; {note.index} Edit
+	&raquo; Supplies &raquo; {{supply.id}} &raquo; Notes &raquo; {note.index} Edit
 {% endblock %}
 
 {% block nav %}
-	<a href="{{context_path}}/supplies">Supplies</a>  &gt;
-	<a href="{{context_path}}/supplies/{{supply.id}}">{{supply.id}}</a>  &gt;
-	<a href="{{context_path}}/supplies/{{supply.id}}/notes">Notes</a>  &gt;
+	&raquo;<a href="{{context_path}}/supplies">Supplies</a>  &raquo;
+	<a href="{{context_path}}/supplies/{{supply.id}}">{{supply.id}}</a>  &raquo;
+	<a href="{{context_path}}/supplies/{{supply.id}}/notes">Notes</a>  &raquo;
 	{{note.index}} Edit
 {% endblock %}
 
